@@ -54,6 +54,15 @@ io.on("connection", (socket) => {
     io.to(adminId).emit("video-stopped");
   });
 
+  // --- Audio ---
+  socket.on("audio-signal", ({ to, data }) => {
+    io.to(to).emit("audio-signal", { from: socket.id, data });
+  });
+
+  socket.on("admin-audio-signal", ({ to, data }) => {
+    io.to(to).emit("admin-audio-signal", { from: socket.id, data });
+  });
+
   // --- Admin: закрытие комнаты
   socket.on("admin-close-room", ({ roomId }) => {
     if (rooms[roomId]) {
