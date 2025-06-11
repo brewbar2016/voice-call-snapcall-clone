@@ -84,27 +84,60 @@ function App() {
     return () => { if (socketRef.current) socketRef.current.disconnect(); };
   }, []);
 
+  // --- Запрашиваем микрофон при входе в комнату ---
+  useEffect(() => {
+    if (step !== "room") return;
+
+    if (role === "user") {
+      const myId = socketRef.current?.id || "self";
+      if (!audioStreams[myId]) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+          setAudioStreams(s => ({ ...s, [myId]: stream }));
+        }).catch(() => {
+          alert("Разрешите доступ к микрофону для голосовой связи!");
+        });
+      }
+    }
+
+    if (role === "admin" && !adminMicStream) {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        setAdminMicStream(stream);
+      }).catch(() => {
+        alert("Разрешите доступ к микрофону для голосовой связи!");
+      });
+    }
+  }, [step, role, audioStreams, adminMicStream]);
+
   // --- 1. Пользователь даёт микрофон при входе (автоматически) ---
   useEffect(() => {
     if (step !== "room" || !roomId) return;
+
     if (role === "user") {
-      (async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          participants
-            .filter(u => u.role === "admin")
-            .forEach(admin => {
-              if (audioPeers.current[admin.id]) return;
-              const peer = new SimplePeer({ initiator: true, trickle: false, stream });
-              peer.on("signal", data => {
-                socketRef.current.emit("audio-signal", { to: admin.id, data });
-              });
-              audioPeers.current[admin.id] = peer;
-            });
-        } catch (e) {
-          alert("Разрешите доступ к микрофону для голосовой связи!");
+      const myId = socketRef.current?.id || "self";
+      let stream = audioStreams[myId];
+      const ensureStream = async () => {
+        if (!stream) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            setAudioStreams(s => ({ ...s, [myId]: stream }));
+          } catch (e) {
+            alert("Разрешите доступ к микрофону для голосовой связи!");
+            return;
+          }
         }
-      })();
+
+        participants
+          .filter(u => u.role === "admin")
+          .forEach(admin => {
+            if (audioPeers.current[admin.id]) return;
+            const peer = new SimplePeer({ initiator: true, trickle: false, stream });
+            peer.on("signal", data => {
+              socketRef.current.emit("audio-signal", { to: admin.id, data });
+            });
+            audioPeers.current[admin.id] = peer;
+          });
+      };
+      ensureStream();
     }
 
     // --- 2. Админ слушает всех юзеров (peer per user) ---
@@ -135,10 +168,8 @@ function App() {
   // --- 2. Админ: может ВКЛ/ВЫКЛ свой микрофон (mute/unmute) ---
   useEffect(() => {
     if (role !== "admin" || step !== "room") return;
-    if (adminMicEnabled && !adminMicStream) {
-      // Включить микрофон
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        setAdminMicStream(stream);
+    if (adminMicEnabled && !adminAudioPeer.current) {
+      const startPeer = (stream) => {
         const peer = new SimplePeer({ initiator: true, trickle: false, stream });
         participants
           .filter(u => u.role === "user")
@@ -148,7 +179,16 @@ function App() {
             });
           });
         adminAudioPeer.current = peer;
-      });
+      };
+
+      if (adminMicStream) {
+        startPeer(adminMicStream);
+      } else {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+          setAdminMicStream(stream);
+          startPeer(stream);
+        });
+      }
     }
     if (!adminMicEnabled && adminMicStream) {
       // Выключить микрофон
