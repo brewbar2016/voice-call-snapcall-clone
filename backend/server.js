@@ -110,6 +110,7 @@ io.on("connection", (socket) => {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "build", "index.html"));
   });  
-server.listen(5000, () => {
-  console.log("Сервер запущен на http://localhost:5000");
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
