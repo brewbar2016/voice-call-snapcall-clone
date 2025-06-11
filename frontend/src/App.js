@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import io from "socket.io-client";
 import SimplePeer from "simple-peer";
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "ws://localhost:5000";
+const SOCKET_URL = "https://backend-ccs4.onrender.com";
 const AVATARS = ["😀", "🦁", "🐼", "🦊", "🐸", "🐨"];
 
 function App() {
