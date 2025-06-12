@@ -371,7 +371,7 @@ function App() {
 
       {/* Центр — Экран и Видео */}
       <div style={{ flex: 1, background: "#fff", borderRadius: 12, padding: 24, minHeight: 320, boxShadow: "0 0 12px #f0f2fa" }}>
-        {screenStream &&
+        {role === "admin" && screenStream &&
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontWeight: 600, fontSize: 15, color: "#3476f4", marginBottom: 2 }}>
               Демонстрация экрана
@@ -408,7 +408,7 @@ function App() {
           </div>
         }
 
-        {videoStream &&
+        {role === "admin" && videoStream &&
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontWeight: 600, fontSize: 15, color: "#28c36a", marginBottom: 2 }}>
               Камера пользователя
